@@ -1,0 +1,129 @@
+
+//@version=5
+
+indicator(title='Exhaustion Signal', shorttitle='Exhaustion', overlay=true)
+
+Candles = input.int(9,"Candle Count")
+Candles2 = input.int(12,"Candle Count")
+
+//rsi
+rsi_length = input.int(14, title="RSI Length", minval=1)
+src = input(close, title="RSI Source")
+
+rsi_value = ta.rsi(src, rsi_length)
+
+ // //  rsi/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+t = close > rsi_value ? (rsi_value > 80 ? 1 : 0) : na
+b = close > rsi_value ? (rsi_value < 20 ? 1 : 0) : na
+
+// //  CALCS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+buySignals = 0
+buySignals := close < close[4] ? buySignals[1] == Candles ? 1 : buySignals[1] + 1 : 0
+
+sellSignals = 0
+sellSignals := close > close[4] ? sellSignals[1] == Candles ? 1 : sellSignals[1] + 1 : 0
+
+BuyOrSell = math.max(buySignals, sellSignals)
+
+buy =  buySignals and BuyOrSell == Candles
+sell =  sellSignals and BuyOrSell == Candles
+
+buySignals2 = 0
+buySignals2 := close < close[4] ? buySignals2[1] == Candles2 ? 1 : buySignals2[1] + 1 : 0
+
+sellSignals2 = 0
+sellSignals2 := close > close[4] ? sellSignals2[1] == Candles2 ? 1 : sellSignals2[1] + 1 : 0
+
+BuyOrSell2 = math.max(buySignals2, sellSignals2)
+
+buy2 =  buySignals2 and BuyOrSell2 == Candles2
+sell2 =  sellSignals2 and BuyOrSell2 == Candles2
+
+plotshape(buy, style=shape.diamond, color=color.new(#30ff85, 0), textcolor=color.new(color.white, 0), size=size.tiny, location=location.belowbar)
+plotshape(sell, style=shape.diamond, color=color.new(#ff1200, 0), textcolor=color.new(color.white, 0), size=size.tiny, location=location.abovebar)
+plotshape(buy2, style=shape.xcross, color=color.new(#30ff85, 0), textcolor=color.new(color.white, 0), size=size.tiny, location=location.belowbar)
+plotshape(sell2, style=shape.xcross, color=color.new(#ff1200, 0), textcolor=color.new(color.white, 0), size=size.tiny, location=location.abovebar)
+
+
+///////ZZZZZ_SSSSCCCCOOOORRRSSSS
+
+
+price_close = request.security(syminfo.tickerid, '1D', close)
+real_time_price =  request.security(syminfo.tickerid, "1", (high[0] + low[0]) / 2)
+selected_timeframe = timeframe.period
+var float back_time = na
+if str.tonumber(selected_timeframe) != na
+    back_time = 1440 / str.tonumber(selected_timeframe)
+
+else 
+    back_time = 1
+
+
+[mean_returns_30, std_returns_30] = request.security(syminfo.tickerid, "60", [ta.sma(close[back_time], 30), ta.stdev(close[back_time], 30)])
+[mean_returns_60, std_returns_60] = request.security(syminfo.tickerid, "60", [ta.sma(close[1], 60), ta.stdev(close[1], 60)])
+[mean_returns_90, std_returns_90] = request.security(syminfo.tickerid, "60", [ta.sma(close[1], 90), ta.stdev(close[1], 90)])
+
+
+ci_upper_30_1 = mean_returns_30 + 1 * std_returns_30
+ci_lower_30_1 = mean_returns_30 - 1 * std_returns_30
+ci_upper_30_2 = mean_returns_30 + 2 * std_returns_30
+ci_lower_30_2 = mean_returns_30 - 2 * std_returns_30
+
+ci_upper_60_1 = mean_returns_60 + 1 * std_returns_60
+ci_lower_60_1 = mean_returns_60 - 1 * std_returns_60
+ci_upper_60_2 = mean_returns_60 + 2 * std_returns_60
+ci_lower_60_2 = mean_returns_60 - 2 * std_returns_60
+
+
+ci_upper_90_1 = mean_returns_90 + 1 * std_returns_90
+ci_lower_90_1 = mean_returns_90 - 1 * std_returns_90
+ci_upper_90_2 = mean_returns_90 + 2 * std_returns_90
+ci_lower_90_2 = mean_returns_90 - 2 * std_returns_90
+
+
+// Calculate Z-Score statistics (avg, max, min)
+z_score_30 = (close[1] - mean_returns_30) / std_returns_30
+z_score_60 = (close[1] - mean_returns_60) / std_returns_60
+z_score_90 = (close[1] - mean_returns_90) / std_returns_90
+
+z_avg_30 =     ta.sma(z_score_30, 30)
+z_max_30 = ta.highest(z_score_30, 30)
+z_min_30 =  ta.lowest(z_score_30, 30) 
+
+ 
+col = #ffffff
+
+if bar_index == last_bar_index
+    line.new(x1=bar_index-100, y1= ci_upper_30_1, x2= bar_index + 100, y2 = ci_upper_30_1 , color=col, width=1, style=line.style_solid)
+    //label.new(x=bar_index+130, y= ci_upper_30_1, text=str.tostring(ci_upper_30_1, '0.0') + ' - '+ '30-1' + ' - upper' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_lower_30_1, x2= bar_index + 100, y2 = ci_lower_30_1 , color=col, width=1, style=line.style_solid)
+   // label.new(x=bar_index+130, y= ci_lower_30_1, text=str.tostring(ci_lower_30_1, '0.0') + ' - '+ '30-1' + ' - lower' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_upper_30_2, x2= bar_index + 100, y2 = ci_upper_30_2 , color=col, width=1, style=line.style_solid)
+   // label.new(x=bar_index+130, y= ci_upper_30_2, text=str.tostring(ci_upper_30_2, '0.0') + ' - '+ '30-2' + ' - upper' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_lower_30_2, x2= bar_index + 100, y2 = ci_lower_30_2 , color=col, width=1, style=line.style_solid)
+   // label.new(x=bar_index+130, y= ci_lower_30_2, text=str.tostring(ci_lower_30_2, '0.0') + ' - '+ '30-2' + ' - lower' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+
+    line.new(x1=bar_index-100, y1= ci_upper_60_1, x2= bar_index + 100, y2 = ci_upper_60_1 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+80, y= ci_upper_60_1, text=str.tostring(ci_upper_60_1, '0.0') + ' - '+ '60-1' + ' - upper' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_lower_60_1, x2= bar_index + 100, y2 = ci_lower_60_1 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+80, y= ci_lower_60_1, text=str.tostring(ci_lower_60_1, '0.0') + ' - '+ '60-1' + ' - lower' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_upper_60_2, x2= bar_index + 100, y2 = ci_upper_60_2 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+80, y= ci_upper_60_2, text=str.tostring(ci_upper_60_2, '0.0') + ' - '+ '60-2' + ' - upper' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_lower_60_2, x2= bar_index + 100, y2 = ci_lower_60_2 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+80, y= ci_lower_60_2, text=str.tostring(ci_lower_60_2, '0.0') + ' - '+ '60-2' + ' - lower' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+
+    line.new(x1=bar_index-100, y1= ci_upper_90_1, x2= bar_index + 100, y2 = ci_upper_90_1 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+30, y= ci_upper_90_1, text=str.tostring(ci_upper_90_1, '0.0') + ' - '+ '90-1' + ' - upper' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_lower_90_1, x2= bar_index + 100, y2 = ci_lower_90_1 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+30, y= ci_lower_90_1, text=str.tostring(ci_lower_60_1, '0.0') + ' - '+ '90-1' + ' - lower' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_upper_90_2, x2= bar_index + 100, y2 = ci_upper_90_2 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+30, y= ci_upper_90_2, text=str.tostring(ci_upper_90_2, '0.0') + ' - '+ '90-2' + ' - upper' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+    line.new(x1=bar_index-100, y1= ci_lower_90_2, x2= bar_index + 100, y2 = ci_lower_90_2 , color=col, width=1, style=line.style_solid)
+    label.new(x=bar_index+30, y= ci_lower_90_2, text=str.tostring(ci_lower_90_2, '0.0') + ' - '+ '90-2' + ' - lower' , color =color.new(color.black, 100), textcolor=#f1f2f4)
+
+    // label.new(x=bar_index, y= previousDayClose-50-10*i, text= str.tostring(mean_returns)+ ', ' + str.tostring(std_returns)+ ', ' + str.tostring(ci_upper)+ ', ' + str.tostring(ci_lower) + ', ' + str.tostring(z_min) + ', ' + str.tostring(z_max), size= size.large, color =color.new(color.black, 100), textcolor=#f1f2f4)
+    
+
+
+
+
